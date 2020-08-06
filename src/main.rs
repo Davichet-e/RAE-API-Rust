@@ -107,31 +107,31 @@ fn search<'a>(
                             [first, second] => (*first, *second),
                             _ => unreachable!(),
                         };
-                    match dicc.get_mut(&i.to_string()).expect("Failed to get the map") {
-                        ValueVariant::Map(map) => map.insert(
+                    if let ValueVariant::Map(map) =
+                        dicc.get_mut(&i.to_string()).expect("Failed to get the map")
+                    {
+                        map.insert(
                             meaning_number.to_string(),
                             Value::Unique(meaning_text.trim_start().to_string()),
-                        ),
-                        _ => unreachable!(),
+                        );
                     };
                 } else if ["k5", "k6"].contains(&paragraph_class) {
                     complex_form = p_text;
-                    match dicc.get_mut(&i.to_string()).expect("Failed to get the map") {
-                        ValueVariant::Map(map) => {
-                            map.insert(complex_form.to_string(), Value::List(Vec::new()))
-                        }
-                        _ => unreachable!(),
+                    if let ValueVariant::Map(map) =
+                        dicc.get_mut(&i.to_string()).expect("Failed to get the map")
+                    {
+                        map.insert(complex_form.to_string(), Value::List(Vec::new()));
                     };
                 } else if paragraph_class == "m" {
-                    match dicc.get_mut(&i.to_string()).expect("Failed to get the map") {
-                        ValueVariant::Map(map) => match map
+                    if let ValueVariant::Map(map) =
+                        dicc.get_mut(&i.to_string()).expect("Failed to get the map")
+                    {
+                        if let Value::List(vec) = map
                             .get_mut(&complex_form)
                             .expect("Failed to get the vector")
                         {
-                            Value::List(vec) => vec.push(p_text),
-                            _ => unreachable!(),
-                        },
-                        _ => unreachable!(),
+                            vec.push(p_text);
+                        }
                     }
                 } else if paragraph_class == "l2" {
                     let link = element
@@ -146,24 +146,22 @@ fn search<'a>(
                     // If any of the complex forms' array is empty,
                     // it means this 'also see' belongs to the complex form
                     let mut loop_breaks = false;
-                    let v = match dicc[&i.to_string()].clone() {
-                        ValueVariant::Map(map) => map.into_iter(),
-                        _ => unreachable!(),
+                    let v = if let ValueVariant::Map(map) = dicc[&i.to_string()].clone() {
+                        map.into_iter()
+                    } else {
+                        unreachable!();
                     };
 
                     for (key, value) in v {
                         if matches!(value, Value::List(vec) if vec.is_empty()) {
-                            match dicc.get_mut(&i.to_string()).expect("Failed to get the map") {
-                                ValueVariant::Map(map) => {
-                                    match map.get_mut(&key).expect("Failed to get the vector") {
-                                        Value::List(vec) => vec.push(format!(
-                                            "Véase '{}' ({} )",
-                                            link_text, redirect_link
-                                        )),
-                                        _ => unreachable!(),
-                                    }
+                            if let ValueVariant::Map(map) =
+                                dicc.get_mut(&i.to_string()).expect("Failed to get the map")
+                            {
+                                if let Value::List(vec) =
+                                    map.get_mut(&key).expect("Failed to get the vector")
+                                {
+                                    vec.push(format!("Véase '{}' ({} )", link_text, redirect_link));
                                 }
-                                _ => unreachable!(),
                             };
                             loop_breaks = true;
                             break;
@@ -176,9 +174,10 @@ fn search<'a>(
                             i, redirect_link
                         );
                         let superscript = link.select(&Selector::parse("sup")?).next();
-                        let superscript_text = match superscript {
-                            Some(element) => element.text().collect::<Vec<&str>>().join(""),
-                            _ => String::new(),
+                        let superscript_text = if let Some(element) = superscript {
+                            element.text().collect::<Vec<&str>>().join("")
+                        } else {
+                            String::new()
                         };
 
                         if superscript_text.is_empty() {
@@ -216,12 +215,11 @@ fn search<'a>(
                         .unwrap();
                     let redirect_link = format!("{}{}", BASE_URL, direction);
 
-                    match dicc
+                    if let ValueVariant::List(vec) = dicc
                         .entry("Envíos".to_string())
                         .or_insert_with(|| ValueVariant::List(Vec::new()))
                     {
-                        ValueVariant::List(vec) => vec.push(redirect_link),
-                        _ => unreachable!(),
+                        vec.push(redirect_link);
                     }
                 }
             }

@@ -1,4 +1,5 @@
 use cssparser::ParseError;
+
 use scraper::{Html, Selector};
 use selectors::parser::SelectorParseErrorKind;
 use serde::{Deserialize, Serialize};
@@ -23,23 +24,15 @@ enum ValueVariant {
     List(Vec<String>),
 }
 
-fn search<'a>(
-    word: impl AsRef<str>,
-) -> Result<BTreeMap<String, ValueVariant>, ParseError<'a, SelectorParseErrorKind<'a>>> {
-    let url = format!("{}/?w={}", BASE_URL, word.as_ref());
-    // Make the request
-    let request = ureq::get(&url)
-        .timeout_connect(10_000) // max 10 seconds
-        .call();
-    // Check if it does redirection
-    if request.get_url() != url {
-        println!("You were redirectionated to {}", request.get_url());
-    }
-    let html = Html::parse_document(
-        &request
-            .into_string()
-            .expect("Couldn't obtain the html of the request"),
-    );
+pub fn search<'a>(
+    word: &str,
+    html_doc: &str,
+) -> Result<String, ParseError<'a, SelectorParseErrorKind<'a>>> {
+    // // Check if it does redirection
+    // if request.get_url() != url {
+    //     println!("You were redirectionated to {}", request.get_url());
+    // }
+    let html = Html::parse_document(html_doc);
     let mut dicc: BTreeMap<String, ValueVariant> = BTreeMap::new();
     // Obtain the div that contains the results
     let selector_results = Selector::parse("div#resultados")?;
@@ -65,8 +58,7 @@ fn search<'a>(
             "Aviso: La palabra {} no está en el Diccionario.\n\
             Pero existe una palabra que es parecida: {},\
             ¿quiere proceder a su búsqueda? (s/n)\n> ",
-            word.as_ref(),
-            word_related[0]
+            word, word_related[0]
         );
         let _ = stdout().flush();
         let mut response = String::new();
@@ -76,13 +68,10 @@ fn search<'a>(
             .expect("Failed to obtain input");
 
         if ["s", "sí", "1"].contains(&&*response.trim().to_lowercase()) {
-            return search(word_related[0]);
+            return search(word_related[0], html_doc);
         }
     } else if results_text.contains(&"Aviso: ") {
-        println!(
-            "Aviso: La palabra {} no está en el Diccionario.",
-            word.as_ref()
-        );
+        println!("Aviso: La palabra {} no está en el Diccionario.", word);
     } else {
         let articles_selector = Selector::parse("article")?;
         let ps_selector = Selector::parse("p")?;
@@ -225,12 +214,5 @@ fn search<'a>(
             }
         }
     }
-    Ok(dicc)
-}
-
-fn main() {
-    match search("papa") {
-        Ok(v) => println!("{:#}", serde_json::to_string_pretty(&v).unwrap()),
-        _ => unreachable!(),
-    }
+    Ok(serde_json::to_string_pretty(&dicc).unwrap())
 }

@@ -10,5 +10,4 @@ edition = "2018"
 scraper = "0.12.0"
 cssparser = "0.27.2"
 selectors = "0.22.0"
-serde_json = "*"
 serde = { version = "*", features = ["derive"] }

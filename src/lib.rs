@@ -11,14 +11,14 @@ const BASE_URL: &str = "https://dle.rae.es";
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(untagged)]
-enum Value {
+pub enum Value {
     List(Vec<String>),
     Unique(String),
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(untagged)]
-enum ValueVariant {
+pub enum ValueVariant {
     String(String),
     Map(BTreeMap<String, Value>),
     List(Vec<String>),
@@ -27,7 +27,7 @@ enum ValueVariant {
 pub fn search<'a>(
     word: &str,
     html_doc: &str,
-) -> Result<String, ParseError<'a, SelectorParseErrorKind<'a>>> {
+) -> Result<BTreeMap<String, ValueVariant>, ParseError<'a, SelectorParseErrorKind<'a>>> {
     // // Check if it does redirection
     // if request.get_url() != url {
     //     println!("You were redirectionated to {}", request.get_url());
@@ -214,5 +214,5 @@ pub fn search<'a>(
             }
         }
     }
-    Ok(serde_json::to_string_pretty(&dicc).unwrap())
+    Ok(dicc)
 }

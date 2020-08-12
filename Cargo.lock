@@ -296,7 +296,6 @@ dependencies = [
  "scraper",
  "selectors",
  "serde",
- "serde_json",
 ]
 
 [[package]]

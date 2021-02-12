@@ -23,6 +23,7 @@ pub enum ValueVariant {
     List(Vec<String>),
 }
 
+#[derive(Debug)]
 pub enum WebScrapError<'a> {
     ParseError(ParseError<'a, SelectorParseErrorKind<'a>>),
     NotFound,

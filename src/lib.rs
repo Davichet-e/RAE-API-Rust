@@ -52,16 +52,21 @@ pub fn search<'a>(html_doc: &str) -> Result<BTreeMap<String, ValueVariant>, WebS
     // Check if word exists
     if results_text.contains(&" La entrada que se muestra a continuación podría estar relacionada:")
     {
-        Err(WebScrapError::Other(
-            results
+        let word: &str = {
+            let word = results
                 .select(&a_selector)
                 .next()
                 .expect("Couldn't obtain the related word")
                 .text()
                 .next()
-                .unwrap()
-                .to_owned(),
-        ))
+                .unwrap();
+            if word.contains(',') {
+                word.split(',').next().unwrap()
+            } else {
+                word
+            }
+        };
+        Err(WebScrapError::Other(word.to_owned()))
     } else if results_text.contains(&"Aviso: ") {
         Err(WebScrapError::NotFound)
     } else {

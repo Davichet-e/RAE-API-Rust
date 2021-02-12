@@ -1,2 +1,6 @@
 /target
 .cargo
+.vscode
+null
+.metals
+Cargo.lock

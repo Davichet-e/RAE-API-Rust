@@ -1,6 +1,6 @@
 [package]
 name = "rae-rust"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["David Garcia <davgarmor2@alum.us.es>"]
 edition = "2018"
 

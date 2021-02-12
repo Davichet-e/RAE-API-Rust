@@ -5,7 +5,6 @@ use selectors::parser::SelectorParseErrorKind;
 use serde::{Deserialize, Serialize};
 
 use std::collections::btree_map::{BTreeMap, Entry};
-use std::io::{stdin, stdout, Write};
 
 const BASE_URL: &str = "https://dle.rae.es";
 
@@ -24,14 +23,19 @@ pub enum ValueVariant {
     List(Vec<String>),
 }
 
-pub fn search<'a>(
-    word: &str,
-    html_doc: &str,
-) -> Result<BTreeMap<String, ValueVariant>, ParseError<'a, SelectorParseErrorKind<'a>>> {
-    // // Check if it does redirection
-    // if request.get_url() != url {
-    //     println!("You were redirectionated to {}", request.get_url());
-    // }
+pub enum WebScrapError<'a> {
+    ParseError(ParseError<'a, SelectorParseErrorKind<'a>>),
+    NotFound,
+    Other(String),
+}
+
+impl<'a> From<ParseError<'a, SelectorParseErrorKind<'a>>> for WebScrapError<'a> {
+    fn from(err: ParseError<'a, SelectorParseErrorKind<'a>>) -> WebScrapError<'a> {
+        WebScrapError::ParseError(err)
+    }
+}
+
+pub fn search<'a>(html_doc: &str) -> Result<BTreeMap<String, ValueVariant>, WebScrapError<'a>> {
     let html = Html::parse_document(html_doc);
     let mut dicc: BTreeMap<String, ValueVariant> = BTreeMap::new();
     // Obtain the div that contains the results
@@ -47,31 +51,18 @@ pub fn search<'a>(
     // Check if word exists
     if results_text.contains(&" La entrada que se muestra a continuación podría estar relacionada:")
     {
-        let word_related = results
-            .select(&a_selector)
-            .next()
-            .expect("Couldn't obtain the related word")
-            .text()
-            .collect::<Vec<&str>>();
-
-        print!(
-            "Aviso: La palabra {} no está en el Diccionario.\n\
-            Pero existe una palabra que es parecida: {},\
-            ¿quiere proceder a su búsqueda? (s/n)\n> ",
-            word, word_related[0]
-        );
-        let _ = stdout().flush();
-        let mut response = String::new();
-
-        stdin()
-            .read_line(&mut response)
-            .expect("Failed to obtain input");
-
-        if ["s", "sí", "1"].contains(&&*response.trim().to_lowercase()) {
-            return search(word_related[0], html_doc);
-        }
+        Err(WebScrapError::Other(
+            results
+                .select(&a_selector)
+                .next()
+                .expect("Couldn't obtain the related word")
+                .text()
+                .next()
+                .unwrap()
+                .to_owned(),
+        ))
     } else if results_text.contains(&"Aviso: ") {
-        println!("Aviso: La palabra {} no está en el Diccionario.", word);
+        Err(WebScrapError::NotFound)
     } else {
         let articles_selector = Selector::parse("article")?;
         let ps_selector = Selector::parse("p")?;
@@ -158,10 +149,6 @@ pub fn search<'a>(
                     }
 
                     if !loop_breaks {
-                        println!(
-                            "La {}a acepción le redirecciona al siguiente link: {}",
-                            i, redirect_link
-                        );
                         let superscript = link.select(&Selector::parse("sup")?).next();
                         let superscript_text = if let Some(element) = superscript {
                             element.text().collect::<Vec<&str>>().join("")
@@ -213,6 +200,6 @@ pub fn search<'a>(
                 }
             }
         }
+        Ok(dicc)
     }
-    Ok(dicc)
 }
